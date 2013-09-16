@@ -1,7 +1,7 @@
 function [ dividedTS ] = divideTimestamp( TimestampCells, PauseTime )
 %DIVIDETIMESTAMP Divide paused Timestamp
 %   PauseTime: Manually enter the time of pause
-%   Version 1.0.0 only supports daat with one pause time 
+%   Version 1.0.0 only supports data with one pause time 
 numChannel = length(TimestampCells);
 
 for i = 1:numChannel
