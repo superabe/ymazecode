@@ -9,12 +9,12 @@ function [ output_args ] = NaiveAnalysis( TSCell,BaselineT,TestingT,Bin )
 %   Bin (sec): Example: 120 for 120 sec bin
 
 %   Version: 1.0.05
-PauseTime = 2400; %manually set PauseTime = 1200 sec
-%TODO: Automatically identify the PauseTime(Injection Time)
+
+%TODO: Automatically identify the PauseTime
 
 nNeu = getnNeu(TSCell);
 
-[ dividedTS ] = divideTimestamp( TSCell, PauseTime );
+[ dividedTS ] = autoDivideTimestamp( TSCell, false);
 BTSCell = dividedTS{1}; %Baseline Timestamp in Cell
 TTSCell = dividedTS{2}; %Testing Timestamp in Cell
 
@@ -29,6 +29,7 @@ TestingHis = zeros(nNeu,sizeTHis);  %pre-allocate Testing Histogram
 
 
 for i = 1:nNeu
+
     BaselineTS = BTSCell{i}.Timestamp(BTSCell{i}.Timestamp>(BTSCell{i}.Timestamp(end)-BaselineT)); %get Baseline Timestamp
    
     BaselineHis(i,:) = hist(BaselineTS,sizeBHis)./(BaselineTS(end)-BaselineTS(1))*sizeBHis;
@@ -37,7 +38,7 @@ for i = 1:nNeu
     MUCI(MUCI<0) = 0;
     BaselineCI(i,:) = MUCI; %Baseline of cell i
     %%
-    TestingTS = TTSCell{i}.Timestamp(TTSCell{i}.Timestamp<(TestingT+TTSCell{i}.Timestamp(1)));
+    TestingTS = TTSCell{i}.Timestamp(TTSCell{i}.Timestamp>(TTSCell{i}.Timestamp(end)-TestingT));
     TestingHis(i,:) = hist(TestingTS,sizeTHis)./Bin;
 
     %% plot histogram
