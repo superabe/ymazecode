@@ -1,6 +1,7 @@
-function [ dividedTS ] = NaiveAnalysis( TSCell,isPP2, BaselineT,TestingT, Bin)
+function [ dividedTS ] = NaiveAnalysis_2( TSCell,isPP2, BaselineT,TestingT, Bin)
 %NAIVEANALYSIS Naive Homecage Analysis
-%   
+%   This function is simlilar to NaiveAnalysis
+%   But the firing rates are normalized.
 %   You NEED to load NEV file using loadTimestamp first.
 
 %   TSCell(TimestampCell): The whole timestamp of all neurons recorded from a daily session
@@ -11,6 +12,7 @@ function [ dividedTS ] = NaiveAnalysis( TSCell,isPP2, BaselineT,TestingT, Bin)
 %   Version: 1.0.05
 
 %TODO: Automatically identify the PauseTime
+% 
 
 nNeu = getnNeu(TSCell);
 
@@ -34,27 +36,40 @@ BaselineCI = zeros(nNeu,2); %Baseline Confidence Intervel
 TestingHis = zeros(nNeu,sizeTHis);  %pre-allocate Testing Histogram
 
 for i = 1:nNeu
-
-    BaselineTS = BTSCell{i}.Timestamp(BTSCell{i}.Timestamp>(BTSCell{i}.Timestamp(end)-BaselineT)); %get Baseline Timestamp
-   
-    BaselineHis(i,:) = hist(BaselineTS,sizeBHis)./(BaselineTS(end)-BaselineTS(1))*sizeBHis;
+    if BTSCell{i}.Timestamp(end) - BTSCell{i}.Timestamp(1) < BaselineT
+        sizeBHis = ceil((BTSCell{i}.Timestamp(end) - BTSCell{i}.Timestamp(1))/Bin);
+        BaselineHis = zeros(nNeu,sizeBHis);
+    end
+    BaselineTS = BTSCell{i}.Timestamp(BTSCell{i}.Timestamp > BTSCell{i}.Timestamp(end) - BaselineT);%get Baseline Timestamp
+    BaselineHis(i,:) = hist(BaselineTS,sizeBHis) / Bin;
+    BaselineHis(i,:) = BaselineHis(i,:) / mean(BaselineHis(i,:));    % Normalization
     %% get Confidence Intervel of Baseline
     [MUHAT,SIGMAHAT,MUCI,SIGMACI] = normfit(BaselineHis(i,:),CIalpha);
     MUCI(MUCI<0) = 0;
-    BaselineCI(i,:) = MUCI; %Baseline of cell i
+    BaselineCI(i,:) = MUCI %Baseline of cell i
     %%
-    TestingTS = TTSCell{i}.Timestamp(TTSCell{i}.Timestamp>(TTSCell{i}.Timestamp(end)-TestingT));
-    TestingHis(i,:) = hist(TestingTS,sizeTHis)./Bin;
-    %%
+    if TTSCell{i}.Timestamp(end) - TTSCell{i}.Timestamp(1) < TestingT
+        sizeTHis = ceil((TTSCell{i}.Timestamp(end) - TTSCell{i}.Timestamp(1))/Bin);
+        TestingHis = zeros(nNeu,sizeTHis);
+    end
+    TestingTS = TTSCell{i}.Timestamp(TTSCell{i}.Timestamp > TTSCell{i}.Timestamp(end) - TestingT);
+    TestingHis(i,:) = hist(TestingTS,sizeTHis)/Bin;
+    TestingHis(i,:) = TestingHis(i,:) / mean(BaselineHis(i,:));
+    %%ti
     if isPP2
-        PP2TS = PTSCell{i}.Timestamp(PTSCell{i}.Timestamp > (PTSCell{i}.Timestamp(end) - 1200));
+        if PTSCell{i}.Timestamp(end) - PTSCell{i}.Timestamp(1) < 1200
+            sizePHis =  ceil((PTSCell{i}.Timestamp(end) - PTSCell{i}.Timestamp(1))/Bin);
+            PP2His = zeros(nNeu, sizePHis);
+        end
+        PP2TS = PTSCell{i}.Timestamp(PTSCell{i}.Timestamp > PTSCell{i}.Timestamp(end) - 1200);
         PP2His(i, :) = hist(PP2TS, sizePHis) / Bin;
+        PP2His(i,:) = PP2His(i,:) / mean(BaselineHis(i,:));
     end
     %% plot histogram
     plothere = 1;
     if (plothere == 1)
     
-    nfigure = ceil(i/6);
+    nfigure = ceil(i/6);  % A new figure is created every 6 subplot.
     figure(nfigure);
     
     IntervalTime = 20; %Interval (in min) between basline recording and post-treatment recording
@@ -64,7 +79,7 @@ for i = 1:nNeu
     %axes(i);
     % x-axis is in min
     if isPP2
-        LeadingBars = sizePHis*(Bin/60) + sizeBHis*(Bin/60) + 2 * IntervalTime ;
+        LeadingBars = sizePHis*(Bin/60) + sizeBHis*(Bin/60) + 2 * IntervalTime;
         bar(LeadingBars:Bin/60:LeadingBars+(sizeTHis-1)*(Bin/60),TestingHis(i,:),1,'r');
         hold on
 

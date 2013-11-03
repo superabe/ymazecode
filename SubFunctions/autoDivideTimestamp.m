@@ -1,7 +1,8 @@
 function [ dividedTS ] = autoDivideTimestamp( TimestampCells, isYmaze, threshold)
-%DIVIDETIMESTAMP Divide paused Timestamp
+%DIVIDETIMESTAMP Divide paused Timestamp automatically.
 % Acoording to the period of pause.
-% Default setting of threshold is 600(10min).
+% Default setting of threshold is 600(10min)
+% The input timestampcells is directly from the loadTimestamp() function.
 if nargin < 3
     threshold = 600;
 end
